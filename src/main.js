@@ -16,13 +16,15 @@ function collectState() {
 
   return {
     ...state,
-    rowsPerPage: parseInt(state.rowsPerPage || 10),
-    page: parseInt(state.page ?? 1),
-    // Приведение к числам для корректной фильтрации
+    // ОБЯЗАТЕЛЬНО: преобразуем в числа через parseFloat
     totalFrom: state.totalFrom ? parseFloat(state.totalFrom) : 0,
     totalTo: state.totalTo ? parseFloat(state.totalTo) : Infinity,
+    
+    rowsPerPage: parseInt(state.rowsPerPage || 10),
+    page: parseInt(state.page ?? 1),
   };
 }
+
 
 function render(action) {
   const state = collectState(); 
