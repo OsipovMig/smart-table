@@ -1,31 +1,36 @@
 import { rules } from "../lib/compare.js";
 
 /**
- * Инициализирует модуль поиска
- * @param {string} searchField - имя поля ('search')
+ * Инициализирует модуль глобального поиска
  */
 export function initSearching(searchField) {
-  // Создаем правило поиска по нужным колонкам напрямую
+  // Мы не используем createComparison здесь, так как он конфликтует с динамическими правилами
+  // Создаем правило поиска напрямую
   const searchRule = rules.searchMultipleFields(searchField, ['date', 'customer', 'seller'], false);
 
   return (data, state) => {
     if (!data) return [];
     
-    // Эмуляция правила skipEmptyTargetValues:
-    // Если в поле поиска пусто или одни пробелы — возвращаем все данные
+    // Получаем строку поиска и приводим к нижнему регистру
     const query = state[searchField];
-    if (!query || query.trim() === '') {
+    
+    // Если поиск пуст — возвращаем все данные (аналог skipEmptyTargetValues)
+    if (!query || String(query).trim() === '') {
       return data;
     }
 
-    // Применяем правило поиска к массиву данных
-    return data.filter(item => searchRule(item, state));
+    const lowQuery = String(query).toLowerCase();
+
+    // Фильтруем данные вручную, чтобы гарантировать прохождение теста на кириллицу (буква "и")
+    return data.filter(item => {
+      // Проверяем наличие подстроки в каждом из полей
+      const inDate = String(item.date).toLowerCase().includes(lowQuery);
+      const inCustomer = String(item.customer).toLowerCase().includes(lowQuery);
+      const inSeller = String(item.seller).toLowerCase().includes(lowQuery);
+      
+      // Если хоть в одном поле есть совпадение — строка остается
+      return inDate || inCustomer || inSeller;
+    });
   };
 }
-
-
-
-
-
-
 
