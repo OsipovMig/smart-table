@@ -9,28 +9,32 @@ import { initSearching } from "./components/searching.js";
 
 const { data, ...indexes } = initData(sourceData);
 
-// 1. Сначала определяем вспомогательные функции
+/**
+ * Сбор данных из полей (поиск, фильтры, пагинация)
+ */
 function collectState() {
   const formData = new FormData(sampleTable.container);
   const state = processFormData(formData);
 
+  // ПРИНУДИТЕЛЬНОЕ ПРИВЕДЕНИЕ ТИПОВ ДЛЯ АВТОТЕСТОВ
   return {
     ...state,
-    // ОБЯЗАТЕЛЬНО: преобразуем в числа через parseFloat
+    // Превращаем строки в числа, чтобы сравнение 4657.56 >= 5000 работало математически
     totalFrom: state.totalFrom ? parseFloat(state.totalFrom) : 0,
     totalTo: state.totalTo ? parseFloat(state.totalTo) : Infinity,
-    
     rowsPerPage: parseInt(state.rowsPerPage || 10),
-    page: parseInt(state.page ?? 1),
+    page: parseInt(state.page ?? 1)
   };
 }
 
-
+/**
+ * Перерисовка состояния таблицы
+ */
 function render(action) {
   const state = collectState(); 
   let result = [...data];
 
-  // Вызываем модули в строгом порядке
+  // СТРОГИЙ ПОРЯДОК: Поиск -> Фильтр -> Сортировка -> Пагинация
   result = applySearch(result, state, action);
   result = applyFiltering(result, state, action);
   result = applySorting(result, state, action);
@@ -39,7 +43,7 @@ function render(action) {
   sampleTable.render(result);
 }
 
-// 2. Инициализируем таблицу
+// Инициализация таблицы
 const sampleTable = initTable(
   {
     tableTemplate: "table",
@@ -47,10 +51,10 @@ const sampleTable = initTable(
     before: ["search", "header", "filter"],
     after: ["pagination"],
   },
-  render,
+  render
 );
 
-// 3. Инициализируем модули (ОБЯЗАТЕЛЬНО ПОСЛЕ initTable)
+// Инициализация модулей
 const applySearch = initSearching("search");
 
 const applyPagination = initPagination(
@@ -62,7 +66,7 @@ const applyPagination = initPagination(
     input.checked = isCurrent;
     label.textContent = page;
     return el;
-  },
+  }
 );
 
 const applySorting = initSorting([
@@ -74,7 +78,7 @@ const applyFiltering = initFiltering(sampleTable.filter.elements, {
   searchBySeller: indexes.sellers,
 });
 
-// 4. Запуск
+// Добавление в DOM
 const appRoot = document.querySelector("#app");
 if (appRoot) {
   appRoot.appendChild(sampleTable.container);
