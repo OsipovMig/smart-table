@@ -20,7 +20,7 @@ const sampleTable = initTable(
     before: ["search", "header", "filter"], // <-- 'search' уже в списке
     after: ["pagination"],
   },
-  render
+  render,
 );
 
 /**
@@ -29,7 +29,7 @@ const sampleTable = initTable(
 
 // === NEW: Инициализация поиска ===
 // Передаем 'search', так как это имя поля в HTML-шаблоне
-const applySearch = initSearching('search'); 
+const applySearch = initSearching("search");
 
 // Настройка пагинации
 const applyPagination = initPagination(
@@ -41,40 +41,48 @@ const applyPagination = initPagination(
     input.checked = isCurrent;
     label.textContent = page;
     return el;
-  }
+  },
 );
 
 // Настройка сортировки
 const applySorting = initSorting([
-    sampleTable.header.elements.sortByDate,
-    sampleTable.header.elements.sortByTotal
+  sampleTable.header.elements.sortByDate,
+  sampleTable.header.elements.sortByTotal,
 ]);
 
 // Настройка фильтрации
 const applyFiltering = initFiltering(sampleTable.filter.elements, {
-    searchBySeller: indexes.sellers
+  searchBySeller: indexes.sellers,
 });
 
 /**
  * 4. Функция перерисовки состояния таблицы
  */
+/**
+ * Перерисовка состояния таблицы при любых изменениях
+ * @param {HTMLButtonElement?} action
+ */
 function render(action) {
-  const state = collectState(); 
-  let result = [...data];       
+  const state = collectState(); // 1. Собираем значения всех полей и кнопок
+  let result = [...data]; // 2. Берем копию исходных данных
 
-  // === NEW: ШАГ 0: ПОИСК (применяется ПЕРЕД фильтрацией) ===
+  // --- ШАГ 1: ПОИСК (если модуль подключен) ---
   result = applySearch(result, state, action);
 
-  // ШАГ 1: ФИЛЬТРАЦИЯ
+  // --- ШАГ 2: ФИЛЬТРАЦИЯ ---
+  // Убираем строки, не подходящие под фильтры колонок
   result = applyFiltering(result, state, action);
 
-  // ШАГ 2: СОРТИРОВКА
+  // --- ШАГ 3: СОРТИРОВКА ---
+  // Сортируем ВЕСЬ отфильтрованный список (например, от дорогих к дешевым)
   result = applySorting(result, state, action);
 
-  // ШАГ 3: ПАГИНАЦИЯ
+  // --- ШАГ 4: ПАГИНАЦИЯ ---
+  // Отрезаем 10-25 строк для текущей страницы от уже отсортированного списка
   result = applyPagination(result, state, action);
 
-  // ШАГ 4: ОТРИСОВКА
+  // --- ШАГ 5: ОТРИСОВКА ---
+  // Отправляем финальный результат в DOM
   sampleTable.render(result);
 }
 
@@ -88,7 +96,10 @@ function collectState() {
   return {
     ...state,
     rowsPerPage: parseInt(state.rowsPerPage || 10),
-    page: parseInt(state.page ?? 1)
+    page: parseInt(state.page ?? 1),
+    // ВАЖНО: приводим лимиты суммы к числам
+    totalFrom: state.totalFrom ? parseFloat(state.totalFrom) : 0,
+    totalTo: state.totalTo ? parseFloat(state.totalTo) : Infinity,
   };
 }
 
