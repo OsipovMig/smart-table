@@ -7,8 +7,9 @@ import { initSorting } from "./components/sorting.js";
 import { initFiltering } from "./components/filtering.js";
 import { initSearching } from "./components/searching.js";
 
-const { data, ...indexes } = initData(sourceData);
-
+//const { data, ...indexes } = initData(sourceData);
+const API = initData(sourceData);
+//const { data, ...indexes } = API;
 /**
  * Сбор данных из полей (поиск, фильтры, пагинация)
  */
@@ -23,23 +24,28 @@ function collectState() {
     totalFrom: state.totalFrom ? parseFloat(state.totalFrom) : 0,
     totalTo: state.totalTo ? parseFloat(state.totalTo) : Infinity,
     rowsPerPage: parseInt(state.rowsPerPage || 10),
-    page: parseInt(state.page ?? 1)
+    page: parseInt(state.page ?? 1),
   };
 }
 
 /**
  * Перерисовка состояния таблицы
  */
-function render(action) {
-  const state = collectState(); 
-  let result = [...data];
+async function render(action) {
+  const state = collectState();
 
-  // СТРОГИЙ ПОРЯДОК: Поиск -> Фильтр -> Сортировка -> Пагинация
+  // 1. Получаем ВСЕ данные из API (так как старые apply* работают с массивом)
+  const { items } = await API.getRecords();
+  let result = [...items]; // Теперь у нас снова массив
+
+  // 2. Старые функции применяются к массиву result
+  // (Убедитесь, что они принимают (result, state, action))
   result = applySearch(result, state, action);
   result = applyFiltering(result, state, action);
   result = applySorting(result, state, action);
   result = applyPagination(result, state, action);
 
+  // 3. Отрисовываем результат
   sampleTable.render(result);
 }
 
@@ -51,7 +57,7 @@ const sampleTable = initTable(
     before: ["search", "header", "filter"],
     after: ["pagination"],
   },
-  render
+  render,
 );
 
 // Инициализация модулей
@@ -66,7 +72,7 @@ const applyPagination = initPagination(
     input.checked = isCurrent;
     label.textContent = page;
     return el;
-  }
+  },
 );
 
 const applySorting = initSorting([
@@ -74,8 +80,9 @@ const applySorting = initSorting([
   sampleTable.header.elements.sortByTotal,
 ]);
 
-const applyFiltering = initFiltering(sampleTable.filter.elements, {
-  searchBySeller: indexes.sellers,
+// 2. Начальная инициализация фильтров (пустая, пока ждем API)
+let applyFiltering = initFiltering(sampleTable.filter.elements, {
+  searchBySeller: {}, // Раньше тут был indexes.sellers, теперь просто пустой объект
 });
 
 // Добавление в DOM
@@ -84,5 +91,18 @@ if (appRoot) {
   appRoot.appendChild(sampleTable.container);
 }
 
-// Первый запуск
-render();
+async function init() {
+  // 3.1. Получаем индексы асинхронно
+  const indexes = await API.getIndexes();
+
+  // Теперь ПЕРЕОПРЕДЕЛЯЕМ фильтры реальными данными
+  applyFiltering = initFiltering(sampleTable.filter.elements, {
+    searchBySeller: indexes.sellers, // Теперь sellers получены из промиса
+  });
+
+  // Возвращаем что-нибудь для .then()
+  return true;
+}
+
+// Запуск
+init().then(render);
