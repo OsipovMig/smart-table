@@ -1,4 +1,3 @@
-import { data as sourceData } from "./data/dataset_1.js";
 import { initData } from "./data.js";
 import { processFormData } from "./lib/utils.js";
 import { initTable } from "./components/table.js";
@@ -7,9 +6,8 @@ import { initSorting } from "./components/sorting.js";
 import { initFiltering } from "./components/filtering.js";
 import { initSearching } from "./components/searching.js";
 
-//const { data, ...indexes } = initData(sourceData);
-const API = initData(sourceData);
-//const { data, ...indexes } = API;
+const API = initData();
+
 /**
  * Сбор данных из полей (поиск, фильтры, пагинация)
  */
@@ -32,21 +30,15 @@ function collectState() {
  * Перерисовка состояния таблицы
  */
 async function render(action) {
-  const state = collectState();
+  let state = collectState(); // состояние полей из таблицы
+  let query = {}; // здесь будут формироваться параметры запроса
 
-  // 1. Получаем ВСЕ данные из API (так как старые apply* работают с массивом)
-  const { items } = await API.getRecords();
-  let result = [...items]; // Теперь у нас снова массив
+  query = applyPagination(query, state, action); // обновляем query
 
-  // 2. Старые функции применяются к массиву result
-  // (Убедитесь, что они принимают (result, state, action))
-  result = applySearch(result, state, action);
-  result = applyFiltering(result, state, action);
-  result = applySorting(result, state, action);
-  result = applyPagination(result, state, action);
+  const { total, items } = await API.getRecords(query); // запрашиваем данные с собранными параметрами
 
-  // 3. Отрисовываем результат
-  sampleTable.render(result);
+  updatePagination(total, query); // перерисовываем пагинатор
+  sampleTable.render(items);
 }
 
 // Инициализация таблицы
@@ -63,7 +55,7 @@ const sampleTable = initTable(
 // Инициализация модулей
 const applySearch = initSearching("search");
 
-const applyPagination = initPagination(
+const { applyPagination, updatePagination } = initPagination(
   sampleTable.pagination.elements,
   (el, page, isCurrent) => {
     const input = el.querySelector("input");
