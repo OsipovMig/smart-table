@@ -34,6 +34,7 @@ async function render(action) {
   let query = {}; // здесь будут формироваться параметры запроса
 
   query = applyPagination(query, state, action); // обновляем query
+  query = applyFiltering(query, state, action);
 
   const { total, items } = await API.getRecords(query); // запрашиваем данные с собранными параметрами
 
@@ -73,9 +74,12 @@ const applySorting = initSorting([
 ]);
 
 // 2. Начальная инициализация фильтров (пустая, пока ждем API)
-let applyFiltering = initFiltering(sampleTable.filter.elements, {
-  searchBySeller: {}, // Раньше тут был indexes.sellers, теперь просто пустой объект
-});
+const { applyFiltering, updateIndexes } = initFiltering(
+  sampleTable.filter.elements,
+  {
+    searchBySeller: {}, // Раньше тут был indexes.sellers, теперь просто пустой объект
+  },
+);
 
 // Добавление в DOM
 const appRoot = document.querySelector("#app");
@@ -84,16 +88,11 @@ if (appRoot) {
 }
 
 async function init() {
-  // 3.1. Получаем индексы асинхронно
   const indexes = await API.getIndexes();
 
-  // Теперь ПЕРЕОПРЕДЕЛЯЕМ фильтры реальными данными
-  applyFiltering = initFiltering(sampleTable.filter.elements, {
-    searchBySeller: indexes.sellers, // Теперь sellers получены из промиса
+  updateIndexes(sampleTable.filter.elements, {
+    searchBySeller: indexes.sellers,
   });
-
-  // Возвращаем что-нибудь для .then()
-  return true;
 }
 
 // Запуск
