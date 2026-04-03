@@ -36,6 +36,7 @@ async function render(action) {
   query = applyPagination(query, state, action); // обновляем query
   query = applyFiltering(query, state, action);
   query = applySorting(query, state, action); // result заменяем на query
+  query = applySearching(query, state, action); // result заменяем на query
 
   const { total, items } = await API.getRecords(query); // запрашиваем данные с собранными параметрами
 
@@ -55,7 +56,7 @@ const sampleTable = initTable(
 );
 
 // Инициализация модулей
-const applySearch = initSearching("search");
+const applySearching = initSearching("search");
 
 const { applyPagination, updatePagination } = initPagination(
   sampleTable.pagination.elements,
