@@ -35,6 +35,7 @@ async function render(action) {
 
   query = applyPagination(query, state, action); // обновляем query
   query = applyFiltering(query, state, action);
+  query = applySorting(query, state, action); // result заменяем на query
 
   const { total, items } = await API.getRecords(query); // запрашиваем данные с собранными параметрами
 
